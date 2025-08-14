@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ylliPather</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="img/cabby.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
         .two-column-boxes {
             display: flex;
@@ -12,10 +15,11 @@
             align-items: flex-start;
             width: 100%;
         }
+
         .column-box {
             background: #23272e;
             border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(80,80,120,0.12);
+            box-shadow: 0 4px 24px rgba(80, 80, 120, 0.12);
             padding: 2.5rem 2vw;
             color: #e6e6e6;
             min-height: 400px;
@@ -23,6 +27,7 @@
             min-width: 0;
             border: 1.5px solid #2c2e36;
         }
+
         body {
             font-family: 'Inter', 'Roboto', Arial, sans-serif;
             background: #181a20;
@@ -32,13 +37,15 @@
             display: flex;
             flex-direction: column;
         }
+
         header {
             background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
             color: #fff;
             padding: 2rem 0 1rem 0;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
+
         h1 {
             font-family: 'Inter', 'Roboto', Arial, sans-serif;
             font-size: 2.5rem;
@@ -46,26 +53,39 @@
             font-weight: 700;
             letter-spacing: 1px;
         }
+
+        p {
+            white-space: pre-wrap;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+
         main {
             flex: 1;
             display: block;
             margin: 0;
         }
+
         #content {
             background: #23242a;
             border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(80,80,120,0.12);
+            box-shadow: 0 4px 24px rgba(80, 80, 120, 0.12);
             padding: 2.5rem 3vw 2.5rem 3vw;
             width: 100%;
             margin: 2.5rem 0 1.5rem 0;
             position: relative;
             box-sizing: border-box;
         }
+
         #content p {
             font-size: 1.2rem;
             line-height: 1.7;
             color: #f7f8fa;
         }
+
         button {
             background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
             color: #fff;
@@ -78,14 +98,17 @@
             cursor: pointer;
             margin-top: 0.5em;
             margin-bottom: 0.5em;
-            box-shadow: 0 2px 8px rgba(252,92,125,0.10);
+            box-shadow: 0 2px 8px rgba(252, 92, 125, 0.10);
             transition: background 0.2s, transform 0.1s;
         }
-        button:hover, button:focus {
+
+        button:hover,
+        button:focus {
             background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
             transform: translateY(-2px) scale(1.03);
             outline: none;
         }
+
         footer {
             background: #23242a;
             color: #aaa;
@@ -96,6 +119,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1>ylliPather</h1>
@@ -105,11 +129,47 @@
         <section id="content">
             <div class="two-column-boxes">
                 <div class="column-box">
-                    <p>Choose penumbra mod folder to start.</p>
-                    <button>Open folder</button>
+                    <p id="intro">Choose penumbra mod folder to start.</p>
+                    <button id="btnfolder">Open folder</button>
+                    <button id="keywords_info" onclick=
+                    "document.getElementById('info').style.display = (info.style.display === 'block' ? 'none' : 'block') ">
+                    Info</button>
+                    <p id="btnfolder_errmsg" style="display: none; color:#fc5c7d"> hello, something went wrong</p>
+                    
+                    <p id="info" style="display: none">Keywords used for automatic assignments (name your paps including those words to automate it): <br></p>
+                    
+                    <script src="dictionaries/method_dictionary.js"></script>
+                    <script>
+                        const info = document.getElementById('info');
+                        Object.entries(method_map).forEach(([label, keywords]) => {
+                            if (Array.isArray(keywords)) {
+                                keywords = keywords.join(', ');
+                            }
+                            info.innerHTML += `<strong style="color: #fc5c7d;">${label}:</strong> ${keywords}<br>`;
+                        });
+                    </script>
+                    <p id="jsonnames"></p>
+                    <pre id="jsoncontent"></pre>
+                    <script src="openfolder.js"></script>
                 </div>
                 <div class="column-box">
+                    <script src="dictionaries/method_dictionary.js"></script>
+                    <script src="dictionaries/emote_dictionary.js"></script>
                     <h2>Right Column</h2>
+                    <table id="papTable" style="display: none">
+                        <tbody>
+                            <tr>
+                                <td id="td001">pap name</td>
+                                <td><input type="checkbox"></td>
+                                <td><select id="selectmethod"></select></td>
+                                <td><select id="selectemote"></select></td>
+                                <td><button>X</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <script>
+                        const jsonData = 0;
+                    </script>
                     <p>This is an example of the right column. Use this area for summaries, details, or output.</p>
                     <button>Another Button</button>
                     <p>List of files opened</p>
@@ -122,4 +182,5 @@
         <p>&copy; 2025 ylliPather by yllisne. All rights reserved.</p>
     </footer>
 </body>
+
 </html>

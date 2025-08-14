@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Yllipather</title>
+        <!-- Google Fonts: Inter and Roboto -->
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="styles.css">
+        <style>
+            .two-column-boxes {
+                display: flex;
+                gap: 2.5em;
+                align-items: flex-start;
+                width: 100%;
+            }
+            .column-box {
+                background: #23272e;
+                border-radius: 16px;
+                box-shadow: 0 4px 24px rgba(80,80,120,0.12);
+                padding: 2.5rem 2vw;
+                color: #e6e6e6;
+                min-height: 400px;
+                flex: 1 1 0;
+                min-width: 0;
+                border: 1.5px solid #2c2e36;
+            }
+            body {
+                font-family: 'Inter', 'Roboto', Arial, sans-serif;
+                background: #181a20;
+                color: #f7f8fa;
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+            header {
+                background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+                color: #fff;
+                padding: 2rem 0 1rem 0;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            }
+            h1 {
+                font-family: 'Inter', 'Roboto', Arial, sans-serif;
+                font-size: 2.5rem;
+                margin: 0;
+                font-weight: 700;
+                letter-spacing: 1px;
+            }
+            main {
+                flex: 1;
+                display: block;
+                margin: 0;
+            }
+            #content {
+                background: #23242a;
+                border-radius: 16px;
+                box-shadow: 0 4px 24px rgba(80,80,120,0.12);
+                padding: 2.5rem 3vw 2.5rem 3vw;
+                width: 100%;
+                margin: 2.5rem 0 1.5rem 0;
+                position: relative;
+                box-sizing: border-box;
+            }
+            #content p {
+                font-size: 1.2rem;
+                line-height: 1.7;
+                color: #f7f8fa;
+            }
+            button {
+                background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 0.7em 1.5em;
+                font-size: 1.05em;
+                font-family: inherit;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 0.5em;
+                margin-bottom: 0.5em;
+                box-shadow: 0 2px 8px rgba(252,92,125,0.10);
+                transition: background 0.2s, transform 0.1s;
+            }
+            button:hover, button:focus {
+                background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+                transform: translateY(-2px) scale(1.03);
+                outline: none;
+            }
+            footer {
+                background: #23242a;
+                color: #aaa;
+                text-align: center;
+                padding: 1rem 0;
+                font-size: 1rem;
+                border-top: 1px solid #2c2e36;
+            }
+        </style>
+    <script src="charaCodeLibrary.js"></script>
+    <script src="emotePapNames.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <h1>ylliPather</h1>
+        <p>pathing .pap files made easy (hopefully)</p>
+    </header>
+    <main>
+        <section id="content">
+            <p>Choose your mod file in penumbra to start.</p>
+            <div class="two-column-boxes">
+                <div id="left-column" class="column-box">
+                    <!-- File input is kept for compatibility, but hidden -->
+                    <input type="file" id="fileInput" accept=".json" style="display:none" />
+                    <button id="openFileBtn" type="button">Open Folder</button>
+                    <span id="fileName" style="margin-left:1em;color:#6a82fb;font-weight:500;"></span>
+                    <div id="folderFileList" style="margin-top:1em;"></div>
+                    <div id="folderJsonContents" style="margin-top:2em;"></div>
+                    <div id="fileError" style="color:#fc5c7d;margin-top:1em;font-weight:500;"></div>
+                    <button id="toggleJsonContentBtn" style="display:none;margin-top:2em;">Show JSON Content</button>
+                    <!-- Toggle summary button moved to right column -->
+                    <section id="assignment" style="margin-top:2em;"></section>
+                    <div id="assignment-rows" style="margin-top:1em;"></div>
+                </div>
+                <div id="right-column" class="column-box">
+                    <div id="json-summary-weird" style="margin-bottom:2em;"></div>
+                    <button id="createGroupBtn" style="margin-bottom:1em;background:#23272e;color:#6a82fb;border:1px solid #444;border-radius:8px;padding:0.5em 1.2em;font-size:1em;font-weight:600;cursor:pointer;">Create New Group</button>
+                    <button id="toggleJsonSummaryBtn" style="display:none;margin-bottom:1em;">Show Summary</button>
+                    <section id="json-summary" style="margin-top:1em; display:none;"></section>
+                    <div id="json-summary-error" style="margin-top:2em; color:#b0b0c0; font-size:1em; display:none;"></div>
+                    <!-- Right column for future content -->
+                </div>
+            </div>
+            <script>
+            // Example row for assignment section
+            function createExampleRow() {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '1em';
+                row.style.marginBottom = '0.7em';
+                row.style.background = '#23272e';
+                row.style.borderRadius = '6px';
+                row.style.padding = '0.7em 1em';
+                row.style.boxShadow = '0 1px 4px rgba(80,80,120,0.10)';
+
+                // Example text
+                const label = document.createElement('span');
+                label.textContent = 'Example text';
+                label.style.flex = '1 1 auto';
+                row.appendChild(label);
+
+                // Checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                row.appendChild(checkbox);
+
+                // First dropdown
+                const select1 = document.createElement('select');
+                ['Option 1', 'Option 2', 'Option 3'].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = o.textContent = opt;
+                    select1.appendChild(o);
+                });
+                row.appendChild(select1);
+
+                // Second dropdown
+                const select2 = document.createElement('select');
+                ['A', 'B', 'C'].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = o.textContent = opt;
+                    select2.appendChild(o);
+                });
+                row.appendChild(select2);
+
+                // X button
+                const delBtn = document.createElement('button');
+                delBtn.textContent = '✕';
+                delBtn.style.background = 'none';
+                delBtn.style.color = '#fc5c7d';
+                delBtn.style.fontSize = '1.2em';
+                delBtn.style.border = 'none';
+                delBtn.style.cursor = 'pointer';
+                delBtn.style.padding = '0 0.5em';
+                delBtn.title = 'Delete row';
+                delBtn.addEventListener('click', () => row.remove());
+                row.appendChild(delBtn);
+
+                return row;
+            }
+            // Add example row on page load
+            document.addEventListener('DOMContentLoaded', () => {
+                const rows = document.getElementById('assignment-rows');
+                if (rows) rows.appendChild(createExampleRow());
+            });
+            </script>
+            <section id="json-content" style="margin-top:1em; display:none; background:#23272e; color:#e6e6e6; font-family:monospace; font-size:0.95em; border-radius:8px; padding:1em; overflow-x:auto;"></section>
+
+
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 Yllipather. All rights reserved.</p>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const openFileBtn = document.getElementById('openFileBtn');
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const fileError = document.getElementById('fileError');
+            const jsonSummary = document.getElementById('json-summary');
+            const toggleSummaryBtn = document.getElementById('toggleJsonSummaryBtn');
+            // Store summaries for all open JSONs
+            let openJsonSummaries = [];
+            // const jsonContent = document.getElementById('jsonContent');
+            // const summary = document.getElementById('summary');
+            openFileBtn.addEventListener('click', async () => {
+                // Use File System Access API to open a folder and list files (recursively)
+                if ('showDirectoryPicker' in window) {
+                    try {
+                        const dirHandle = await window.showDirectoryPicker();
+                        const fileListDiv = document.getElementById('folderFileList');
+                        const jsonContentsDiv = document.getElementById('folderJsonContents');
+                        fileListDiv.innerHTML = '<strong>Files in selected folder:</strong><br>';
+                        jsonContentsDiv.innerHTML = '';
+                        openJsonSummaries = [];
+                        let errorFiles = [];
+                        async function listFilesRecursively(dirHandle, path = '') {
+                            for await (const entry of dirHandle.values()) {
+                                if (entry.kind === 'file') {
+                                    const isPap = entry.name.toLowerCase().endsWith('.pap');
+                                    fileListDiv.innerHTML += `<div style=\"color:${isPap ? '#fc5c7d' : '#e6e6e6'};\">${path}${entry.name}</div>`;
+                                    if (entry.name.toLowerCase().endsWith('.json')) {
+                                        let couldSummarize = false;
+                                        try {
+                                            const file = await entry.getFile();
+                                            const text = await file.text();
+                                            let pretty = '';
+                                            let obj = null;
+                                            try {
+                                                obj = JSON.parse(text);
+                                                pretty = JSON.stringify(obj, null, 2);
+                                            } catch {
+                                                pretty = text;
+                                            }
+                                            jsonContentsDiv.innerHTML += `<div style=\"margin-bottom:2em;\"><strong style=\"color:#fc5c7d;\">${path}${entry.name}</strong><pre style=\"background:#23272e;color:#e6e6e6;font-family:monospace;font-size:0.95em;border-radius:8px;padding:1em;overflow-x:auto;\">${escapeHtml(pretty)}</pre></div>`;
+                                            // Summarize .pap assignments for this file
+                                            if (obj) {
+                                                const papMap = {};
+                                                const codeRegex = /c(0[1-9]01|1[0-8]01)/i;
+                                                const animPapRegex = /([\w\-]+\.pap)$/i;
+                                                function processEntry(key, value) {
+                                                    const codeMatch = key.match(codeRegex);
+                                                    const animPapMatch = key.match(animPapRegex);
+                                                    const papMatch = typeof value === 'string' ? value.match(animPapRegex) : null;
+                                                    if (papMatch && animPapMatch && codeMatch) {
+                                                        const papFile = papMatch[1];
+                                                        const animPap = animPapMatch[1];
+                                                        const code = 'c' + codeMatch[1];
+                                                        if (!papMap[papFile]) papMap[papFile] = {};
+                                                        if (!papMap[papFile][key]) papMap[papFile][key] = { animPap, codes: new Set() };
+                                                        papMap[papFile][key].codes.add(code);
+                                                    }
+                                                }
+                                                function traverse(obj) {
+                                                    if (typeof obj === 'object' && obj !== null) {
+                                                        for (const key in obj) {
+                                                            processEntry(key, obj[key]);
+                                                            traverse(obj[key]);
+                                                        }
+                                                    } else if (Array.isArray(obj)) {
+                                                        obj.forEach(traverse);
+                                                    }
+                                                }
+                                                traverse(obj);
+                                                // Build summary for this file
+                                                let summaryHtml = '';
+                                                for (const papFile in papMap) {
+                                                    summaryHtml += `<div style=\"margin-bottom:1em;\"><strong>For <span style='color:#fc5c7d;'>${escapeHtml(papFile)}</span> assigned in <span style='color:#6a82fb;'>${escapeHtml(path+entry.name)}</span>:</strong><br>`;
+                                                    const emoteToRaces = {};
+                                                    for (const emotePath in papMap[papFile]) {
+                                                        const { animPap, codes } = papMap[papFile][emotePath];
+                                                        let emoteName = animPap;
+                                                        if (typeof emotePapNames !== 'undefined') {
+                                                            if (emotePapNames[emotePath]) {
+                                                                emoteName = emotePapNames[emotePath];
+                                                            } else {
+                                                                const replaced = emotePath.replace(/chara\/human\/c\d{4}\//i, 'chara/human/c0101/');
+                                                                if (emotePapNames[replaced]) {
+                                                                    emoteName = emotePapNames[replaced];
+                                                                } else {
+                                                                    let emoteFile = null;
+                                                                    const emoteFileMatch = emotePath.match(/([\w\-]+\.pap)$/i);
+                                                                    if (emoteFileMatch && emotePapNames[emoteFileMatch[1]]) {
+                                                                        emoteName = emotePapNames[emoteFileMatch[1]];
+                                                                    } else if (emotePapNames[animPap]) {
+                                                                        emoteName = emotePapNames[animPap];
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        if (!emoteToRaces[emoteName]) emoteToRaces[emoteName] = new Set();
+                                                        Array.from(codes).forEach(code => {
+                                                            const race = charaCodeLibrary[code];
+                                                            if (race) emoteToRaces[emoteName].add(race);
+                                                        });
+                                                    }
+                                                    for (const emoteName in emoteToRaces) {
+                                                        const races = Array.from(emoteToRaces[emoteName]);
+                                                        summaryHtml += `&nbsp;&nbsp;<span style='color:#6a82fb;'>${escapeHtml(emoteName)}</span> for races: ${races.length ? races.join(', ') : '<em>unknown</em>'}<br>`;
+                                                    }
+                                                    summaryHtml += `</div>`;
+                                                }
+                                                if (summaryHtml) {
+                                                    openJsonSummaries.push(summaryHtml);
+                                                    couldSummarize = true;
+                                                }
+                                            }
+                                            if (!couldSummarize) {
+                                                errorFiles.push(`${path}${entry.name}`);
+                                            }
+                                        } catch {
+                                            errorFiles.push(`${path}${entry.name}`);
+                                        }
+                                    }
+                                } else if (entry.kind === 'directory') {
+                                    await listFilesRecursively(entry, path + entry.name + '/');
+                                }
+                            }
+                        }
+                        await listFilesRecursively(dirHandle);
+                        fileName.textContent = dirHandle.name || '';
+                        // Show summary if any .pap assignments found
+                        if (openJsonSummaries.length > 0) {
+                            jsonSummary.innerHTML = openJsonSummaries.join('<hr style="border:0;border-top:1px solid #444;margin:1.5em 0;">');
+                            jsonSummary.style.display = 'none';
+                            toggleSummaryBtn.style.display = 'inline-block';
+                            toggleSummaryBtn.textContent = 'Show Summary';
+
+                            // --- New "weird" summary format ---
+                            const weirdDiv = document.getElementById('json-summary-weird');
+                            let weirdRows = [];
+                            let groupBoxes = [];
+                            // Group state
+                            let groupIdCounter = 1;
+                            // Render group boxes
+                            function renderGroups() {
+                                const weirdDiv = document.getElementById('json-summary-weird');
+                                // Only remove group boxes, not the summary table or rows
+                                Array.from(weirdDiv.querySelectorAll('.group-box')).forEach(box => box.remove());
+                                // Render all group boxes (append after the create button, before the main table)
+                                let insertAfter = document.getElementById('createGroupBtn');
+                                groupBoxes.forEach((group, idx) => {
+                                    const groupBox = document.createElement('div');
+                                    groupBox.className = 'group-box';
+                                    groupBox.setAttribute('draggable', 'true');
+                                    groupBox.setAttribute('data-group-idx', idx);
+                                    groupBox.style.background = '#23272e';
+                                    groupBox.style.border = '2px solid #6a82fb';
+                                    groupBox.style.borderRadius = '12px';
+                                    groupBox.style.marginBottom = '1.2em';
+                                    groupBox.style.padding = '1em 1em 0.5em 1em';
+                                    groupBox.style.minHeight = '3em';
+                                    groupBox.style.position = 'relative';
+                                    // Header row
+                                    const headerRow = document.createElement('div');
+                                    headerRow.style.display = 'flex';
+                                    headerRow.style.alignItems = 'center';
+                                    headerRow.style.marginBottom = '0.7em';
+                                    // Editable group name
+                                    const groupName = document.createElement('input');
+                                    groupName.type = 'text';
+                                    groupName.value = group.name;
+                                    groupName.placeholder = 'Group name...';
+                                    groupName.style.flex = '1 1 auto';
+                                    groupName.style.background = '#181a20';
+                                    groupName.style.color = '#6a82fb';
+                                    groupName.style.fontWeight = '600';
+                                    groupName.style.fontSize = '1.1em';
+                                    groupName.style.border = '1px solid #444';
+                                    groupName.style.borderRadius = '6px';
+                                    groupName.style.padding = '0.3em 0.8em';
+                                    groupName.addEventListener('input', e => { group.name = groupName.value; });
+                                    // Group type select
+                                    const groupType = document.createElement('select');
+                                    groupType.style.marginLeft = '1em';
+                                    groupType.style.background = '#23272e';
+                                    groupType.style.color = '#6a82fb';
+                                    groupType.style.fontWeight = '500';
+                                    groupType.style.border = '1px solid #444';
+                                    groupType.style.borderRadius = '6px';
+                                    groupType.style.padding = '0.2em 0.7em';
+                                    groupType.innerHTML = `<option value='single'${group.type==='single'?' selected':''}>Single group</option><option value='multi'${group.type==='multi'?' selected':''}>Multi group</option>`;
+                                    groupType.addEventListener('change', e => { group.type = groupType.value; });
+                                    headerRow.appendChild(groupName);
+                                    headerRow.appendChild(groupType);
+                                    groupBox.appendChild(headerRow);
+                                    // Drop area for rows
+                                    const dropArea = document.createElement('div');
+                                    dropArea.className = 'group-drop-area';
+                                    dropArea.style.minHeight = '2em';
+                                    dropArea.style.marginBottom = '0.5em';
+                                    dropArea.style.padding = '0.5em 0';
+                                    dropArea.style.border = '1.5px dashed #6a82fb';
+                                    dropArea.style.borderRadius = '8px';
+                                    dropArea.style.transition = 'background 0.2s';
+                                    dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.background = 'rgba(106,130,251,0.08)'; });
+                                    dropArea.addEventListener('dragleave', e => { dropArea.style.background = ''; });
+                                    dropArea.addEventListener('drop', e => {
+                                        e.preventDefault();
+                                        dropArea.style.background = '';
+                                        if (window.draggingRow) {
+                                            dropArea.appendChild(window.draggingRow);
+                                        }
+                                    });
+                                    groupBox.appendChild(dropArea);
+                                    // Drag-and-drop for group box reordering
+                                    groupBox.addEventListener('dragstart', function(e) {
+                                        window.draggingGroupBoxIdx = parseInt(groupBox.getAttribute('data-group-idx'));
+                                        groupBox.style.opacity = '0.5';
+                                    });
+                                    groupBox.addEventListener('dragend', function(e) {
+                                        window.draggingGroupBoxIdx = null;
+                                        groupBox.style.opacity = '';
+                                    });
+                                    groupBox.addEventListener('dragover', function(e) {
+                                        e.preventDefault();
+                                        groupBox.style.boxShadow = '0 0 0 2px #6a82fb';
+                                    });
+                                    groupBox.addEventListener('dragleave', function(e) {
+                                        groupBox.style.boxShadow = '';
+                                    });
+                                    groupBox.addEventListener('drop', function(e) {
+                                        e.preventDefault();
+                                        groupBox.style.boxShadow = '';
+                                        const groupBoxesDom = Array.from(document.querySelectorAll('.group-box'));
+                                        const toIdx = groupBoxesDom.indexOf(groupBox);
+                                        const fromIdx = window.draggingGroupBoxIdx;
+                                        if (typeof fromIdx === 'number' && fromIdx !== toIdx && toIdx !== -1) {
+                                            const moved = groupBoxes.splice(fromIdx, 1)[0];
+                                            groupBoxes.splice(toIdx, 0, moved);
+                                            renderGroups();
+                                        }
+                                    });
+                                    // Insert after the create button, before the main table
+                                    if (insertAfter && insertAfter.parentNode) {
+                                        insertAfter.parentNode.insertBefore(groupBox, insertAfter.nextSibling);
+                                        insertAfter = groupBox;
+                                    } else {
+                                        weirdDiv.appendChild(groupBox);
+                                    }
+                                });
+                            }
+
+                            // Add create group button handler
+                            let createBtn = document.getElementById('createGroupBtn');
+                            if (!createBtn) {
+                                createBtn = document.createElement('button');
+                                createBtn.id = 'createGroupBtn';
+                                createBtn.textContent = 'Create New Group';
+                                createBtn.style.marginBottom = '1em';
+                                createBtn.style.background = '#23272e';
+                                createBtn.style.color = '#6a82fb';
+                                createBtn.style.border = '1px solid #444';
+                                createBtn.style.borderRadius = '8px';
+                                createBtn.style.padding = '0.5em 1.2em';
+                                createBtn.style.fontSize = '1em';
+                                createBtn.style.fontWeight = '600';
+                                createBtn.style.cursor = 'pointer';
+                                document.getElementById('json-summary-weird').prepend(createBtn);
+                            }
+                            createBtn.onclick = function() {
+                                groupBoxes.push({ name: '', type: 'single' });
+                                renderGroups();
+                            };
+                            // For drag-and-drop
+                            let dragSrcIndex = null;
+                            // Get condition_map keys dynamically if available
+                            let conditionOptions = [];
+                            if (typeof condition_map !== 'undefined') {
+                                conditionOptions = Object.keys(condition_map);
+                            } else if (window.condition_map) {
+                                conditionOptions = Object.keys(window.condition_map);
+                            }
+                            for (const summary of openJsonSummaries) {
+                                const papMatches = Array.from(summary.matchAll(/<span style='color:#fc5c7d;'>([^<]+)<\/span>/g));
+                                const emoteMatches = Array.from(summary.matchAll(/<span style='color:#6a82fb;'>([^<]+)<\/span>/g));
+                                if (papMatches.length === 0) {
+                                    weirdRows.push(`
+                                        <tr>
+                                            <td colspan='5' style='color:#b0b0c0;text-align:center;padding:0.5em 0.7em;background:#23272e;border-radius:6px;'>No .pap assignments found in this file.</td>
+                                        </tr>
+                                    `);
+                                    continue;
+                                }
+                                for (let i = 0; i < papMatches.length; i++) {
+                                    const papName = papMatches[i][1];
+                                    const emoteName = emoteMatches[i] ? emoteMatches[i][1] : papName;
+                                    // Debug: show papName being checked
+                                    console.log('[DEBUG] Checking papName:', papName);
+                                    let selectedCondition = '';
+                                    for (const [condKey, condVal] of Object.entries(typeof condition_map !== 'undefined' ? condition_map : (window.condition_map || {}))) {
+                                        if (!condVal) continue;
+                                        const values = Array.isArray(condVal) ? condVal : [condVal];
+                                        for (const v of values) {
+                                            if (typeof v === 'string') {
+                                                console.log(`[DEBUG]   Against value: '${v}' in key: '${condKey}'`);
+                                                if (papName.toLowerCase().includes(v.toLowerCase()) && v.length > 1) {
+                                                    console.log(`[DEBUG]   MATCH: papName '${papName}' contains '${v}' (condition: '${condKey}')`);
+                                                    selectedCondition = condKey;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if (selectedCondition) break;
+                                    }
+                                    if (!selectedCondition) {
+                                        console.log(`[DEBUG]   No match for papName: '${papName}', defaulting to 'Save for everyone'`);
+                                        selectedCondition = 'Save for everyone';
+                                    }
+                                    // Build normal select for condition_map
+                                    let condOptionsHtml = `<option value=''></option>`;
+                                    for (const opt of conditionOptions) {
+                                        condOptionsHtml += `<option value="${opt}"${opt===selectedCondition?" selected":''}>${opt}</option>`;
+                                    }
+                                    // Consistent style for both fields
+                                    const comboStyle = 'min-width:120px;padding:0.2em 0.7em;border-radius:6px;border:1px solid #444;background:#23272e;color:#6a82fb;font-weight:500;';
+
+                                    // Build select for condition_map with consistent style
+                                    let condSelectHtml = `<select style='${comboStyle}'>${condOptionsHtml}</select>`;
+
+                                    // Build editable combo box for emote names (input + datalist), styled like the select
+                                    let emoteDatalistId = `emotelist_${i}_${Math.random().toString(36).substr(2,5)}`;
+                                    let emoteNamesSet = new Set();
+                                    if (typeof emotePapNames !== 'undefined') {
+                                        for (const val of Object.values(emotePapNames)) {
+                                            if (typeof val === 'string') emoteNamesSet.add(val);
+                                        }
+                                    } else if (window.emotePapNames) {
+                                        for (const val of Object.values(window.emotePapNames)) {
+                                            if (typeof val === 'string') emoteNamesSet.add(val);
+                                        }
+                                    }
+                                    // Sort for usability
+                                    const emoteNames = Array.from(emoteNamesSet).sort((a, b) => a.localeCompare(b));
+                                    let emoteInputValue = (!emoteName || /\.json$/i.test(emoteName)) ? '' : emoteName;
+                                    let emoteInputHtml = `<input list='${emoteDatalistId}' style='${comboStyle}' value='${emoteInputValue}' placeholder='Select or type...' autocomplete='off' />`;
+                                    emoteInputHtml += `<datalist id='${emoteDatalistId}'>`;
+                                    for (const name of emoteNames) {
+                                        emoteInputHtml += `<option value="${name}"></option>`;
+                                    }
+                                    emoteInputHtml += `</datalist>`;
+
+                                    weirdRows.push(`
+                                        <tr draggable="true" data-row-idx="${i}">
+                                            <td style='color:#fc5c7d;min-width:120px;text-align:right;padding:0.5em 0.7em;background:#23272e;border-radius:6px 0 0 6px;'>${papName}</td>
+                                            <td style='text-align:center;padding:0.5em 0.7em;background:#23272e;'><input type='checkbox' /></td>
+                                            <td style='text-align:center;padding:0.5em 0.7em;background:#23272e;'>${condSelectHtml}</td>
+                                            <td style='text-align:center;padding:0.5em 0.7em;background:#23272e;'>${emoteInputHtml}</td>
+                                            <td style='text-align:center;padding:0.5em 0.7em;background:#23272e;border-radius:0 6px 6px 0;'><button style='background:none;color:#fc5c7d;font-size:0.95em;border:none;cursor:pointer;padding:0 0.2em;width:1.5em;height:1.5em;line-height:1.1em;' title='Delete row'>✕</button></td>
+                                        </tr>
+                                    `);
+                                }
+                            }
+                            weirdDiv.innerHTML = `<table style='width:100%;border-collapse:separate;border-spacing:0 0.2em;'><tbody>${weirdRows.join('')}</tbody></table>`;
+                            // Build main table for ungrouped rows
+                            const mainTable = document.createElement('table');
+                            mainTable.style.width = '100%';
+                            mainTable.style.borderCollapse = 'separate';
+                            mainTable.style.borderSpacing = '0 0.2em';
+                            const tbody = document.createElement('tbody');
+                            mainTable.appendChild(tbody);
+                            tbody.innerHTML = weirdRows.join('');
+                            // Add drag-and-drop handlers
+                            window.draggingRow = null;
+                            let draggingRowInitialParent = null;
+                            function addRowDnDHandlers(row) {
+                                row.addEventListener('dragstart', function(e) {
+                                    window.draggingRow = this;
+                                    draggingRowInitialParent = this.parentNode;
+                                    this.style.opacity = '0.5';
+                                });
+                                row.addEventListener('dragend', function(e) {
+                                    window.draggingRow = null;
+                                    draggingRowInitialParent = null;
+                                    this.style.opacity = '';
+                                });
+                                row.addEventListener('dragover', function(e) {
+                                    e.preventDefault();
+                                    this.style.boxShadow = '0 0 0 2px #6a82fb';
+                                });
+                                row.addEventListener('dragleave', function(e) {
+                                    this.style.boxShadow = '';
+                                });
+                                row.addEventListener('drop', function(e) {
+                                    e.preventDefault();
+                                    this.style.boxShadow = '';
+                                    if (window.draggingRow && window.draggingRow !== this) {
+                                        if (this.parentNode) {
+                                            this.parentNode.insertBefore(window.draggingRow, this.nextSibling);
+                                        }
+                                    }
+                                });
+                            }
+                            tbody.querySelectorAll('tr[draggable]')?.forEach(addRowDnDHandlers);
+                            // Also enable reordering inside group drop areas
+                            setTimeout(() => {
+                                document.querySelectorAll('.group-drop-area').forEach(dropArea => {
+                                    dropArea.querySelectorAll('tr[draggable]')?.forEach(addRowDnDHandlers);
+                                    // Allow dropping row at end of group
+                                    dropArea.addEventListener('dragover', function(e) { e.preventDefault(); dropArea.style.background = 'rgba(106,130,251,0.08)'; });
+                                    dropArea.addEventListener('dragleave', function(e) { dropArea.style.background = ''; });
+                                    dropArea.addEventListener('drop', function(e) {
+                                        e.preventDefault();
+                                        dropArea.style.background = '';
+                                        if (window.draggingRow) {
+                                            dropArea.appendChild(window.draggingRow);
+                                        }
+                                    });
+                                });
+                            }, 0);
+                            renderGroups();
+                        } else {
+                            jsonSummary.innerHTML = '';
+                            jsonSummary.style.display = 'none';
+                            toggleSummaryBtn.style.display = 'none';
+                        }
+                        // Show error message for files that couldn't be summarized
+                        const errorDiv = document.getElementById('json-summary-error');
+                        if (errorFiles.length > 0) {
+                            errorDiv.innerHTML = `<span style='font-weight:500;'>Following files don’t contain assignments:</span><br>${errorFiles.map(f => `<span style='color:#fc5c7d;background:rgba(252,92,125,0.08);padding:0.1em 0.4em;border-radius:6px;'>${escapeHtml(f)}</span>`).join('<br>')}`;
+                            errorDiv.style.display = 'block';
+                        } else {
+                            errorDiv.innerHTML = '';
+                            errorDiv.style.display = 'none';
+                        }
+                    } catch (err) {
+                        document.getElementById('folderFileList').innerHTML = '<em>Folder selection cancelled or not supported.</em>';
+                        jsonSummary.innerHTML = '';
+                        jsonSummary.style.display = 'none';
+                        toggleSummaryBtn.style.display = 'none';
+                    }
+                } else {
+                    alert('Your browser does not support folder access. Please use Chrome or Edge.');
+                }
+            });
+            const jsonContent = document.getElementById('json-content');
+            const toggleBtn = document.getElementById('toggleJsonContentBtn');
+            fileInput.addEventListener('change', () => {
+                fileError.textContent = '';
+                jsonContent.style.display = 'none';
+                toggleBtn.style.display = 'none';
+                toggleBtn.textContent = 'Show JSON Content';
+                jsonContent.innerHTML = '';
+                jsonSummary.innerHTML = '';
+                jsonSummary.style.display = 'none';
+                toggleSummaryBtn.style.display = 'none';
+                toggleSummaryBtn.textContent = 'Show Summary';
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    fileName.textContent = file.name;
+                    if (!file.name.toLowerCase().endsWith('.json')) {
+                        fileError.textContent = 'Please select a .json file.';
+                        fileName.textContent = '';
+                        fileInput.value = '';
+                        return;
+                    }
+                    // Read and display JSON content
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const obj = JSON.parse(e.target.result);
+                            jsonContent.innerHTML = `<pre style=\"margin:0;\">${escapeHtml(JSON.stringify(obj, null, 2))}</pre>`;
+                            // Group by .pap file in values, and for each, list all animation .pap files assigned and races
+                            const papMap = {};
+                            const codeRegex = /c(0[1-9]01|1[0-8]01)/i;
+                            // Allow hyphens and underscores in .pap file names
+                            const animPapRegex = /([\w\-]+\.pap)$/i;
+                            function processEntry(key, value) {
+                                // Find code in key
+                                const codeMatch = key.match(codeRegex);
+                                // Find animation .pap in key
+                                const animPapMatch = key.match(animPapRegex);
+                                // Find .pap file in value
+                                const papMatch = typeof value === 'string' ? value.match(animPapRegex) : null;
+                                if (papMatch && animPapMatch && codeMatch) {
+                                    const papFile = papMatch[1];
+                                    const animPap = animPapMatch[1];
+                                    const code = 'c' + codeMatch[1];
+                                    if (!papMap[papFile]) papMap[papFile] = {};
+                                    // Store the full key as the emote path for later lookup
+                                    if (!papMap[papFile][key]) papMap[papFile][key] = { animPap, codes: new Set() };
+                                    papMap[papFile][key].codes.add(code);
+                                }
+                            }
+                            function traverse(obj) {
+                                if (typeof obj === 'object' && obj !== null) {
+                                    for (const key in obj) {
+                                        processEntry(key, obj[key]);
+                                        traverse(obj[key]);
+                                    }
+                                } else if (Array.isArray(obj)) {
+                                    obj.forEach(traverse);
+                                }
+                            }
+                            traverse(obj);
+                            // Build summary
+                            let summaryHtml = '';
+                            for (const papFile in papMap) {
+                                summaryHtml += `<div style=\"margin-bottom:1em;\"><strong>For <span style='color:#fc5c7d;'>${escapeHtml(papFile)}</span> assigned:</strong><br>`;
+                                // Group races by emote name
+                                const emoteToRaces = {};
+                                for (const emotePath in papMap[papFile]) {
+                                    const { animPap, codes } = papMap[papFile][emotePath];
+                                    let emoteName = animPap;
+                                    if (typeof emotePapNames !== 'undefined') {
+                                        if (emotePapNames[emotePath]) {
+                                            emoteName = emotePapNames[emotePath];
+                                        } else {
+                                            const replaced = emotePath.replace(/chara\/human\/c\d{4}\//i, 'chara/human/c0101/');
+                                            if (emotePapNames[replaced]) {
+                                                emoteName = emotePapNames[replaced];
+                                            } else {
+                                                let emoteFile = null;
+                                                const emoteFileMatch = emotePath.match(/([\w\-]+\.pap)$/i);
+                                                if (emoteFileMatch && emotePapNames[emoteFileMatch[1]]) {
+                                                    emoteName = emotePapNames[emoteFileMatch[1]];
+                                                } else if (emotePapNames[animPap]) {
+                                                    emoteName = emotePapNames[animPap];
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (!emoteToRaces[emoteName]) emoteToRaces[emoteName] = new Set();
+                                    Array.from(codes).forEach(code => {
+                                        const race = charaCodeLibrary[code];
+                                        if (race) emoteToRaces[emoteName].add(race);
+                                    });
+                                }
+                                for (const emoteName in emoteToRaces) {
+                                    const races = Array.from(emoteToRaces[emoteName]);
+                                    summaryHtml += `&nbsp;&nbsp;<span style='color:#6a82fb;'>${escapeHtml(emoteName)}</span> for races: ${races.length ? races.join(', ') : '<em>unknown</em>'}<br>`;
+                                }
+                                summaryHtml += `</div>`;
+                            }
+                            if (!summaryHtml) {
+                                summaryHtml = '<em>No .pap assignments found in this file.</em>';
+                            }
+                            jsonSummary.innerHTML = summaryHtml;
+                            jsonSummary.style.display = 'none';
+                            toggleSummaryBtn.style.display = 'inline-block';
+                            toggleSummaryBtn.textContent = 'Show Summary';
+                        } catch (err) {
+                            fileError.textContent = 'Invalid JSON file!';
+                        }
+                    };
+                    reader.readAsText(file);
+                    // Show the toggle buttons when a JSON is loaded
+                    toggleBtn.style.display = 'inline-block';
+                    toggleSummaryBtn.style.display = 'inline-block';
+                } else {
+                    fileName.textContent = '';
+                }
+            });
+            toggleSummaryBtn.addEventListener('click', () => {
+                if (jsonSummary.style.display === 'none') {
+                    jsonSummary.style.display = 'block';
+                    toggleSummaryBtn.textContent = 'Hide Summary';
+                } else {
+                    jsonSummary.style.display = 'none';
+                    toggleSummaryBtn.textContent = 'Show Summary';
+                }
+            });
+            // Helper to escape HTML for code display
+            function escapeHtml(str) {
+                return str.replace(/[&<>]/g, function(tag) {
+                    const charsToReplace = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;'
+                    };
+                    return charsToReplace[tag] || tag;
+                });
+            }
+            toggleBtn.addEventListener('click', () => {
+                if (jsonContent.style.display === 'none') {
+                    jsonContent.style.display = 'block';
+                    toggleBtn.textContent = 'Hide JSON Content';
+                } else {
+                    jsonContent.style.display = 'none';
+                    toggleBtn.textContent = 'Show JSON Content';
+                }
+            });
+            console.log('Yllipather is ready!');
+        });
+    </script>
+</body>
+</html>
