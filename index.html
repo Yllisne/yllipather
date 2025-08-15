@@ -8,224 +8,7 @@
     <link rel="icon" type="image/png" href="img/cabby.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&display=swap"
         rel="stylesheet">
-    <style>
-        input[type="text"] {
-            background: #2c2e36;
-            color: #3498db;
-            border: 1px solid #2c2e36;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 1em;
-            font-family: inherit;
-            font-weight: 600;
-            box-shadow: 0 1px 2px rgba(44, 46, 54, 0.10);
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px #3498db33;
-        }
-
-        input[type="checkbox"] {
-            accent-color: #3498db;
-            background: #2c2e36;
-            border: 1.5px solid #2c2e36;
-            border-radius: 5px;
-            width: 1.1em;
-            height: 1.1em;
-            vertical-align: middle;
-            margin: 0 4px 0 0;
-            box-shadow: 0 1px 2px rgba(44, 46, 54, 0.10);
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        input[type="checkbox"]:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px #3498db33;
-        }
-
-        .drag-box {
-            border: 2.5px dashed #3498db;
-            border-radius: 12px;
-            background: rgba(52, 152, 219, 0.07);
-            padding: 1.5em 1em 2.5em 1em;
-            margin: 2em auto 1.5em auto;
-
-            min-height: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            box-shadow: 0 2px 12px rgba(52, 152, 219, 0.08);
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .drag-box-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #3498db;
-            margin-bottom: 1em;
-        }
-
-        .drag-box-space {
-            flex: 1;
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #7fb3df;
-            font-size: 1.05em;
-            letter-spacing: 0.02em;
-
-        }
-
-        .two-column-boxes {
-            display: flex;
-            gap: 2.5em;
-            align-items: flex-start;
-            width: 100%;
-        }
-
-        .column-box {
-            background: #23272e;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(80, 80, 120, 0.12);
-            padding: 2.5rem 2vw;
-            color: #e6e6e6;
-            min-height: 400px;
-            flex: 1 1 0;
-            min-width: 0;
-            border: 1.5px solid #2c2e36;
-        }
-
-        body {
-            font-family: 'Inter', 'Roboto', Arial, sans-serif;
-            background: #181a20;
-            color: #f7f8fa;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        header {
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-            color: #fff;
-            padding: 2rem 0 1rem 0;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-
-        h1 {
-            font-family: 'Inter', 'Roboto', Arial, sans-serif;
-            font-size: 2.5rem;
-            margin: 0;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-
-        p {
-            white-space: pre-wrap;
-        }
-
-        pre {
-            white-space: pre-wrap;
-            overflow-wrap: break-word;
-        }
-
-        main {
-            flex: 1;
-            display: block;
-            margin: 0;
-        }
-
-        #content {
-            background: #23242a;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(80, 80, 120, 0.12);
-            padding: 2.5rem 3vw 2.5rem 3vw;
-            width: 100%;
-            margin: 2.5rem 0 1.5rem 0;
-            position: relative;
-            box-sizing: border-box;
-        }
-
-        #content p {
-            font-size: 1.2rem;
-            line-height: 1.7;
-            color: #f7f8fa;
-        }
-
-        select {
-            background: #2c2e36;
-            color: #f7f8fa;
-            border: 1px solid #2c2e36;
-            border-radius: 6px;
-            padding: 2px 8px;
-            font-size: 0.98em;
-        }
-
-        button {
-            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 0.7em 1.5em;
-            font-size: 1.05em;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 0.5em;
-            margin-bottom: 0.5em;
-            box-shadow: 0 2px 8px rgba(252, 92, 125, 0.10);
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        button:hover,
-        button:focus {
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-            transform: translateY(-2px) scale(1.03);
-            outline: none;
-        }
-
-        .smolbutton {
-            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            padding: 0.25em 0.7em;
-            font-size: 0.88em;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            margin-right: 3px;
-            margin-top: 0.3em;
-            margin-bottom: 0.3em;
-            box-shadow: 0 1px 4px rgba(252, 92, 125, 0.10);
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        .smolbutton:hover,
-        .smolbutton:focus {
-            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
-            transform: translateY(-2px) scale(1.03);
-            outline: none;
-        }
-
-        footer {
-            background: #23242a;
-            color: #aaa;
-            text-align: center;
-            padding: 1rem 0;
-            font-size: 1rem;
-            border-top: 1px solid #2c2e36;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -236,15 +19,17 @@
     <main>
         <section id="content">
             <div class="two-column-boxes">
-                <div class="column-box" style="max-width: 40%; flex: 0 0 40%; padding: 10px;">
-                    <p id="intro">Choose penumbra mod folder to start. Your .pap files should be in at least one folder inside. </p>
+                <div class="column-box" style="max-width: 35%; flex: 0 0 40%; padding: 10px;">
+                    <p id="intro">Choose penumbra mod folder to start. Your .pap files should be in at least one folder
+                        inside. </p>
                     <button id="btnfolder">Open folder</button>
                     <button id="keywords_info"
                         onclick="const el=document.getElementById('info'); el.style.display = (el.style.display==='block'?'none':'block')">
                         Info
                     </button>
                     <p id="btnfolder_errmsg" style="display: none; color:#fc5c7d"> hello, something went wrong</p>
-                    <p id="info" style="display: none">Keywords used for automatic assignments (name your paps including those words to automate it): <br></p>
+                    <p id="info" style="display: none">Keywords used for automatic assignments (name your paps including
+                        those words to automate it): <br></p>
 
                     <script src="dictionaries/method_dictionary.js"></script>
                     <script>
@@ -262,21 +47,34 @@
                 </div>
                 <div class="column-box">
                     <script src="dictionaries/emote_dictionary.js"></script>
-                    <a id="modlink" href=""><h2 id="modinfo"></h2></a>
+                    <div id="dmodinfo">
+                        <p id="pmodinfo" style="display: none;">Mod being edited:</p>
+                        <a id="modlink" href="" target="_blank"><button id="modinfo" class="widebutton"
+                                style="display: none;"></button></a>
+                    </div>
+                    <div id="unk_modinfo" class="formbox" style="display: none">
+                        <p>Mod unknown. Click to fill out if you're the author</p>
+                        <button onclick="document.getElementById('unk_modinfo').style.display='none'"
+                            style="width:'16px';"><img src="img/delete_icon.png"></button>
+                        <label for="unk_author">Author's name:</label>
+                        <input type="text" id="unk_author"><br>
+                        <label for="unk_modname">Mod name:</label>
+                        <input type="text" id="unk_modname"><br>
+                        <label for="unk_link">Mod link/Profile link</label>
+                        <input type="url" id="unk_link">
+                    </div>
                     <div id="groups" style="display: none;">
                         <div class="drag-box">
                             <div class="drag-box-header">
                                 <span id="grp_not">Not assigned</span>
                             </div>
                             <div class="drag-box-space">
-                                <table id="unassignedTable" style="display: none">
+                                <table id="unassignedTable">
                                     <tbody>
                                         <tr>
-                                            <td id="td001">pap name</td>
-                                            <td><input type="checkbox"></td>
-                                            <td><select id="selectmethod"></select></td>
-                                            <td><select id="selectemote"></select></td>
-                                            <td><button class="smolbutton">X</button></td>
+                                            <td class="tddrop" colspan="5">
+                                                Drop file(s) here
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -293,7 +91,13 @@
                                 </span>
                             </div>
                             <div class="drag-box-space">
-                                Drag file(s) here
+                                <table id="defaultTable">
+                                    <tbody>
+                                        <td class="tddrop" colspan="5">
+                                            Drop file(s) here
+                                        </td>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

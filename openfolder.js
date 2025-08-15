@@ -83,6 +83,25 @@ function normalizePath(path) {
     path = String(path); // Ensure path is a string
     return path.replace(/c\d{4}/, 'c0101');
 }
+
+function drag(event) {
+    const tr = event.target.closest('tr'); // ensures you always get the row
+    event.dataTransfer.setData("text/plain", tr.dataset.id);
+}
+
+function allowDrop(event) {
+    event.preventDefault();
+}
+
+function drop(event) {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain");
+    const draggedRow = document.querySelector(`[data-id="${id}"]`)
+    if (draggedRow) {
+        event.currentTarget.appendChild(draggedRow);
+    }
+}
+
 let jsonnamesonly = [];
 document.getElementById('btnfolder').addEventListener('click', async function () {
     try {
@@ -119,6 +138,9 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 }
             }
         });
+
+
+
         //test logs
         //console.log('Assigned paths:', assignedPathNames);
         //console.log(papnames);
@@ -127,12 +149,42 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
         document.getElementById('jsonnames').textContent = jsonnames.join('\n');
         document.getElementById('jsoncontent').textContent = jsoncontent;
         //console.log(jsonObjects);
+
+        //mod author header
+        jsonObjects.forEach(({ jsonData, filePath }) => {
+            if (filePath.endsWith('meta.json')) {
+                const modName = jsonData.Name || 'Unknown Mod';
+                const author = jsonData.Author || 'Unknown Author';
+                const website = jsonData.Website || '#';
+
+                const modlink = document.getElementById('modlink');
+                const modinfo = document.getElementById('modinfo');
+                if (modName !== 'Unknown Mod') {
+                    document.getElementById('modinfo').style.display = "block";
+                    document.getElementById('pmodinfo').style.display = "block";
+
+                } else {
+                    document.getElementById('unk_modinfo').style.display = "block";
+                }
+
+                // Set the link URL
+                modlink.href = website;
+
+                // Set the visible text
+                modinfo.textContent = `${author} – ${modName}`;
+
+            }
+        });
+
+
     }
     catch (error) {
         console.error('Error opening folder:', error);
         document.getElementById('btnfolder_errmsg').style.display = 'block';
         document.getElementById('btnfolder_errmsg').textContent = 'Error: ' + error.message;
     }
+
+
     //list of groups
     document.getElementById('groups').style.display = 'block';
     //console.log('jsonObjects:', jsonObjects);
@@ -142,6 +194,9 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
     let id = 0;
     const groupMap = {};
     const groupTableMap = {}; // Store tables for each group
+
+
+
     jsonnamesonly.forEach((filename, index) => {
         if (['default_mod.json', 'meta.json'].includes(filename)) {
             //console.log(`Skipping ${filename}`);
@@ -212,10 +267,36 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
 
         const table = document.createElement('table');
         table.id = `table${groupName.replace(/\s+/g, '_')}`;
-        table.innerHTML = `<tbody></tbody>`;
+
+        const tbody = document.createElement('tbody');
+        document.getElementById('defaultTable').addEventListener("dragover", allowDrop);
+        document.getElementById('defaultTable').addEventListener("drop", drop);
+        document.getElementById('unassignedTable').addEventListener("dragover", allowDrop);
+        document.getElementById('unassignedTable').addEventListener("drop", drop);
+        tbody.addEventListener("dragover", allowDrop);
+        tbody.addEventListener("drop", drop);
+
+
+        table.style.borderCollapse = 'collapse';
+        table.style.minHeight = '40px'; // make empty tables visible
+
+        //placeholders for empty group
+        const placeholder = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5; // number of columns
+        td.class = "tddrop";
+        //td.style.textAlign = 'center';
+        //td.style.color = '#7fb3df';
+        td.textContent = 'Drop file(s) here';
+        placeholder.appendChild(td);
+        tbody.appendChild(placeholder);
+
+
+
+        table.appendChild(tbody);
         dragSpace.appendChild(table);
 
-        groupTableMap[groupName] = table.querySelector('tbody'); // Store the table for this group
+        groupTableMap[groupName] = tbody; // Store the table for this group
 
         // Append header and drag space to main box
         dragBox.appendChild(header);
@@ -232,7 +313,7 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
 
 
 
-
+    let trid = 0;
     //building the pap table visible on website
     if (document.getElementById('unassignedTable').style.display === 'none') {
         document.getElementById('unassignedTable').style.display = 'table';
@@ -240,10 +321,22 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
     if (papnames.length > 0) {
 
         const tbody = document.querySelector('#unassignedTable tbody');
-        tbody.innerHTML = ''; // Clear existing rows
+        tbody.innerHTML = '';
+        const tru = document.createElement('tr');
+        const tdu = document.createElement('td');
+        tdu.colSpan = 5;
+        tdu.className = 'tddrop';
+        tdu.style.textAlign = 'center';
+        tdu.textContent = 'Drop file(s) here';
+
+        tru.appendChild(tdu);
+        tbody.appendChild(tru);
+        //.innerHTML = ''; // Clear existing rows
 
 
         let targetTbody;
+
+
         papnames.forEach(pap => {
             //const assignedGroups = findAssignedGroup(jsonObjects, pap);
             const assignedGroups = [...new Set(findAssignedGroup(jsonObjects, pap))]; // remove duplicates
@@ -251,7 +344,7 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
             //const tr = document.createElement('tr');
             const buildRow = (pap) => {
                 const tr = document.createElement('tr');
-
+                tr.id = trid++;
                 // Name
                 const tdName = document.createElement('td');
                 tdName.textContent = pap;
@@ -327,7 +420,7 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 tr.appendChild(tdButton);
 
                 // Clone button
-                
+
                 const cloneButton = document.createElement('button');
                 cloneButton.className = 'smolbutton';
                 const icon = document.createElement('img');
@@ -337,12 +430,18 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 icon.style.height = '16px';
                 cloneButton.appendChild(icon);
 
-                cloneButton.addEventListener('click', () => tr.cloneNode());
+                cloneButton.addEventListener('click', () => {
+                    const clone = tr.cloneNode(true);
+                    clone.dataset.id = ++trid; // give it a unique id
+                    clone.addEventListener("dragstart", drag); // reattach drag listener
+                    tdButton.parentElement.appendChild(clone); // append to the same tbody
+                });
+
                 tdButton.appendChild(cloneButton);
                 tr.appendChild(tdButton);
 
                 // Delete button
-                
+
                 delBtn.className = 'smolbutton';
                 const delIcon = document.createElement('img');
                 delIcon.src = 'img/delete_icon.png'; // Path to your delete icon
@@ -355,6 +454,10 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 tr.appendChild(tdButton);
 
 
+                tr.draggable = "true";
+                tr.addEventListener("dragstart", drag)
+                tr.dataset.id = trid;
+
                 return tr;
             };
 
@@ -362,6 +465,8 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 assignedGroups.forEach(group => {
                     const groupTbody = groupTableMap[group];
                     if (groupTbody) {
+                        const placeholder = tbody.querySelector('tr td[colspan="5"]');
+                        if (placeholder) placeholder.parentElement.remove();
                         groupTbody.appendChild(buildRow(pap));
                     } else {
                         console.warn(`No table found for group: ${group}`);
@@ -369,6 +474,22 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 });
             } else {
                 document.querySelector('#unassignedTable tbody').appendChild(buildRow(pap));
+                const placeholder = unassignedTbody.querySelector('tr td[colspan="5"]');
+                if (placeholder) placeholder.parentElement.remove();
+
+                const tbody = document.querySelector('#unassignedTable tbody');
+                tbody.innerHTML = '';
+                const tru = document.createElement('tr');
+                const tdu = document.createElement('td');
+                tdu.colSpan = 5;
+                tdu.className = 'tddrop';
+                tdu.style.textAlign = 'center';
+                tdu.textContent = 'Drop file(s) here';
+
+                tru.appendChild(tdu);
+                tbody.appendChild(tru);
+
+                //unassignedTbody.appendChild(buildRow(pap));
             }
 
         });
