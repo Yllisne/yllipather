@@ -49,15 +49,41 @@ function findAssignedPapNames(jsonObjects) {
         }
     }
 
-    console.log('Assigned pap data:', assignedPapData);
+    //console.log('Assigned pap data:', assignedPapData);
     return assignedPapData;
 }
+
+function findAssignedGroup(jsonObjects, papName) {
+    const groups = [];
+    for (const { jsonData } of jsonObjects) {
+        if (!jsonData.Options || !Array.isArray(jsonData.Options)) continue;
+
+        const topLevelName = Array.isArray(jsonData)
+            ? jsonData[0]?.Name
+            : jsonData.Name || "Unnamed Group";
+
+        for (const option of jsonData.Options) {
+            if (!option.Files) continue;
+
+            for (const [pathKey, assignedValue] of Object.entries(option.Files)) {
+                const values = Array.isArray(assignedValue) ? assignedValue : [assignedValue];
+                if (values.some(val => normalizePath(val).includes(normalizePath(papName)))) {
+                    groups.push(topLevelName);
+                }
+            }
+        }
+    }
+    return groups;
+}
+
+
+
 
 function normalizePath(path) {
     path = String(path); // Ensure path is a string
     return path.replace(/c\d{4}/, 'c0101');
 }
-
+let jsonnamesonly = [];
 document.getElementById('btnfolder').addEventListener('click', async function () {
     try {
         const folderPath = await window.showDirectoryPicker();
@@ -77,6 +103,8 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
         }
         // Filter out .json files and keep only .pap files
         papnames = jsonnames.filter(name => name.endsWith('.pap'));
+
+        jsonnamesonly = jsonnames.filter(name => name.endsWith('.json'));
         papnames = papnames.map(name => {
             const parts = name.split('/');
             return parts[parts.length - 1];
@@ -92,130 +120,256 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
             }
         });
         //test logs
-        console.log('Assigned paths:', assignedPathNames);
-        console.log(papnames);
+        //console.log('Assigned paths:', assignedPathNames);
+        //console.log(papnames);
 
         //actually showing the json content on the page
         document.getElementById('jsonnames').textContent = jsonnames.join('\n');
         document.getElementById('jsoncontent').textContent = jsoncontent;
-        console.log(jsonObjects);
+        //console.log(jsonObjects);
     }
     catch (error) {
         console.error('Error opening folder:', error);
         document.getElementById('btnfolder_errmsg').style.display = 'block';
         document.getElementById('btnfolder_errmsg').textContent = 'Error: ' + error.message;
     }
+    //list of groups
+    document.getElementById('groups').style.display = 'block';
+    //console.log('jsonObjects:', jsonObjects);
+    //console.log('jsonData:', jsonObjects.map(obj => obj.jsonData));
+
+    document.getElementById('groups').style.display = 'block';
+    let id = 0;
+    const groupMap = {};
+    const groupTableMap = {}; // Store tables for each group
+    jsonnamesonly.forEach((filename, index) => {
+        if (['default_mod.json', 'meta.json'].includes(filename)) {
+            //console.log(`Skipping ${filename}`);
+            return; // skip this iteration
+        }
+
+        id++;
+        // Find the corresponding json object
+        const jsonObj = jsonObjects.find(o => o.filePath.endsWith(filename));
+        const groupName = Array.isArray(jsonObj.jsonData)
+            ? jsonObj.jsonData.find(item => item?.Name)?.Name || `Group ${id}`
+            : jsonObj.jsonData.Name || `Group ${id}`;
+
+
+        // Create the main drag-box div
+        const dragBox = document.createElement('div');
+        dragBox.className = 'drag-box';
+
+        // Create the header div
+        const header = document.createElement('div');
+        header.className = 'drag-box-header';
+
+        // Create the group name span
+        const groupData = Array.isArray(jsonObj.jsonData)
+            ? jsonObj.jsonData.find(item => item?.Name)
+            : jsonObj.jsonData;
+
+
+        // spanName = document.createElement('span');
+        //spanName.id = `grp${id}`;
+        //spanName.textContent = groupData?.Name || `Group ${id}`;;
+
+        inputtextName = document.createElement('input');
+        inputtextName.type = 'text';
+        inputtextName.id = `grp${id}`;
+        inputtextName.value = groupData?.Name || `Group ${id}`;
+
+        if (!groupMap[groupData?.Name || `Group ${id}`]) {
+            groupMap[groupData?.Name || `Group ${id}`] = {
+                id: `grp${id}`,
+                name: groupData?.Name || `Group ${id}`,
+                jsonData: jsonObj.jsonData, //store json data for this group
+            }
+        }
+
+        // Create the select element
+        const spanSelect = document.createElement('span');
+        const select = document.createElement('select');
+        select.style.cssText = 'border-radius:6px;padding:2px 8px;font-size:0.98em;';
+        select.innerHTML = `
+        <option>Single</option>
+        <option>Multi</option>
+    `;
+        const selectData = Array.isArray(jsonObj.jsonData)
+            ? jsonObj.jsonData.find(item => item?.Type)
+            : jsonObj.jsonData;
+
+        select.value = selectData?.Type || 'single group'; // Set the value based on jsonData
+        spanSelect.appendChild(select);
+
+        // Append spans to header
+        //header.appendChild(spanName);
+        header.appendChild(inputtextName);
+        header.appendChild(spanSelect);
+
+        // Create drag-box-space div
+        const dragSpace = document.createElement('div');
+
+        const table = document.createElement('table');
+        table.id = `table${groupName.replace(/\s+/g, '_')}`;
+        table.innerHTML = `<tbody></tbody>`;
+        dragSpace.appendChild(table);
+
+        groupTableMap[groupName] = table.querySelector('tbody'); // Store the table for this group
+
+        // Append header and drag space to main box
+        dragBox.appendChild(header);
+        dragBox.appendChild(dragSpace);
+
+        // Append drag-box to groups container
+        document.getElementById('groups').appendChild(dragBox);
+    });
+
+    if (id === 0) {
+        console.warn('No groups found in jsonnamesonly');
+    }
+
+
+
+
 
     //building the pap table visible on website
-    if (document.getElementById('papTable').style.display === 'none') {
-        document.getElementById('papTable').style.display = 'table';
+    if (document.getElementById('unassignedTable').style.display === 'none') {
+        document.getElementById('unassignedTable').style.display = 'table';
     }
     if (papnames.length > 0) {
-        const tbody = document.querySelector('#papTable tbody');
+
+        const tbody = document.querySelector('#unassignedTable tbody');
         tbody.innerHTML = ''; // Clear existing rows
 
+
+        let targetTbody;
         papnames.forEach(pap => {
-            const tr = document.createElement('tr');
+            //const assignedGroups = findAssignedGroup(jsonObjects, pap);
+            const assignedGroups = [...new Set(findAssignedGroup(jsonObjects, pap))]; // remove duplicates
 
-            //papnames
-            const tdName = document.createElement('td');
-            tdName.textContent = pap;
-            tr.appendChild(tdName);
+            //const tr = document.createElement('tr');
+            const buildRow = (pap) => {
+                const tr = document.createElement('tr');
 
-            //checkbox
-            const tdCheckbox = document.createElement('td');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            tdCheckbox.appendChild(checkbox);
-            tr.appendChild(tdCheckbox);
+                // Name
+                const tdName = document.createElement('td');
+                tdName.textContent = pap;
+                tr.appendChild(tdName);
 
-            //select method
-            const tdSelectMethod = document.createElement('td');
-            const selectMethod = document.createElement('select');
+                // Checkbox
+                const tdCheckbox = document.createElement('td');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                tdCheckbox.appendChild(checkbox);
+                tr.appendChild(tdCheckbox);
 
-            for (const key in method_map) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = key;
-                selectMethod.appendChild(option);
+                // Method select
+                const tdSelectMethod = document.createElement('td');
+                const selectMethod = document.createElement('select');
+                for (const key in method_map) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = key;
 
-                let keywords = method_map[key];
-                if (!Array.isArray(keywords)) {
-                    keywords = [keywords];
+                    const keywords = Array.isArray(method_map[key]) ? method_map[key] : [method_map[key]];
+                    if (keywords.some(k => pap.toLowerCase().includes(k.toLowerCase()))) option.selected = true;
+
+                    selectMethod.appendChild(option);
                 }
-                const papLower = pap.toLowerCase();
-                const found = keywords.some(keywords => papLower.includes(keywords.toLowerCase()));
+                tdSelectMethod.appendChild(selectMethod);
+                tr.appendChild(tdSelectMethod);
 
-                if (found) {
-                    option.selected = true; // Select the option if keywords match
-                }
-            }
-            tdSelectMethod.appendChild(selectMethod)
-            tr.appendChild(tdSelectMethod);
+                // Emote select
+                const tdSelectEmote = document.createElement('td');
+                const selectEmote = document.createElement('select');
 
-            //select emote
-            const tdSelectEmote = document.createElement('td');
-            const selectEmote = document.createElement('select');
-            selectEmote.innerHTML = ''; // Clear existing options
-            const assignedFileName = findAssignedPapNames(jsonObjects, pap);
-            let assignedfound = '';
-            for (const assigned of assignedFileName) {
-                if (assigned.assignedValue.includes(pap)) {
-                    assignedfound = assigned.pathKey;
-                    console.log(`Found assigned pap name: ${assigned.pathKey} for ${pap}`);
-                    break; // Stop after finding the first match
-                }
-            }
-            for (const key in emote_map) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = emote_map[key];
-                selectEmote.appendChild(option);
-
-                let keywords = [normalizePath(key)];
-                if (!Array.isArray(keywords)) {
-                    keywords = [keywords];
-                }
-                
-                
-
-                const found = assignedfound && keywords.some(keyword =>
-                    normalizePath(assignedfound.toLowerCase()).includes(keyword.toLowerCase()));
-                //const emoteLower = pap.toLowerCase();
-                //const found = keywords.some(keywords => emoteLower.includes(keywords.toLowerCase()));
-                if (found) {
-                    option.selected = true; // Select the option if keywords match
-                }
-                else {
-                    const found = keywords.some(keyword =>
-                        normalizePath(pap.toLowerCase()).includes(keyword.toLowerCase()));
-                    if (found) {
-                    option.selected = true; // Select the option if keywords match
-                    }
-                    else {
-                        // If no match found, you can handle it here if needed
-                    console.log(`No match found for ${assignedFileName} in papnames`);
-                    //create a new option for original path
-                    const newOption = document.createElement('option');
-                    newOption.value = assignedFileName;
+                const assignedFileName = findAssignedPapNames(jsonObjects);
+                let assignedfound = '';
+                for (const assigned of assignedFileName) {
+                    if (assigned.assignedValue.includes(pap)) {
+                        assignedfound = assigned.pathKey;
+                        break;
                     }
                 }
 
+                for (const key in emote_map) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = emote_map[key][0];
+
+                    const keyword = normalizePath(key);
+                    if (assignedfound && normalizePath(assignedfound.toLowerCase()).includes(keyword.toLowerCase())) {
+                        option.selected = true;
+                    } else if (normalizePath(pap.toLowerCase()).includes(keyword.toLowerCase())) {
+                        option.selected = true;
+                    }
+
+                    selectEmote.appendChild(option);
+                }
+
+                tdSelectEmote.appendChild(selectEmote);
+                tr.appendChild(tdSelectEmote);
+
+                const tdButton = document.createElement('td');
+                const delBtn = document.createElement('button');
+
+                // edit button
+                const editButton = document.createElement('button');
+                editButton.className = 'smolbutton';
+                const editIcon = document.createElement('img');
+                editIcon.src = 'img/edit_icon.png'; // Path to your edit icon
+                editIcon.alt = 'Edit';
+                editIcon.style.width = '16px';
+                editIcon.style.height = '16px';
+                editButton.appendChild(editIcon);
+                tdButton.appendChild(editButton);
+                tr.appendChild(tdButton);
+
+                // Clone button
+                
+                const cloneButton = document.createElement('button');
+                cloneButton.className = 'smolbutton';
+                const icon = document.createElement('img');
+                icon.src = 'img/clone_icon.png'; // Path to your clone icon
+                icon.alt = 'Clone';
+                icon.style.width = '16px';
+                icon.style.height = '16px';
+                cloneButton.appendChild(icon);
+
+                cloneButton.addEventListener('click', () => tr.cloneNode());
+                tdButton.appendChild(cloneButton);
+                tr.appendChild(tdButton);
+
+                // Delete button
+                
+                delBtn.className = 'smolbutton';
+                const delIcon = document.createElement('img');
+                delIcon.src = 'img/delete_icon.png'; // Path to your delete icon
+                delIcon.alt = 'Delete';
+                delIcon.style.width = '16px';
+                delIcon.style.height = '16px';
+                delBtn.appendChild(delIcon);
+                delBtn.addEventListener('click', () => tr.remove());
+                tdButton.appendChild(delBtn);
+                tr.appendChild(tdButton);
+
+
+                return tr;
+            };
+
+            if (assignedGroups.length > 0) {
+                assignedGroups.forEach(group => {
+                    const groupTbody = groupTableMap[group];
+                    if (groupTbody) {
+                        groupTbody.appendChild(buildRow(pap));
+                    } else {
+                        console.warn(`No table found for group: ${group}`);
+                    }
+                });
+            } else {
+                document.querySelector('#unassignedTable tbody').appendChild(buildRow(pap));
             }
-            tdSelectEmote.appendChild(selectEmote);
-            tr.appendChild(tdSelectEmote);
-
-            //delete button
-            const tdButton = document.createElement('td');
-            const delBtn = document.createElement('button');
-            delBtn.textContent = '✕';
-            delBtn.addEventListener('click', () => {
-                tr.remove(); // Remove the row
-            });
-            tdButton.appendChild(delBtn);
-            tr.appendChild(tdButton);
-
-            tbody.appendChild(tr);
 
         });
 
