@@ -19,17 +19,15 @@
     <main>
         <section id="content">
             <div class="two-column-boxes">
-                <div class="column-box" style="max-width: 35%; flex: 0 0 40%; padding: 10px;">
-                    <p id="intro">Choose penumbra mod folder to start. Your .pap files should be in at least one folder
-                        inside. </p>
+                <div class="column-box" style="max-width: 25%; flex: 0 0 40%; padding: 10px;">
+                    <p id="intro">Choose penumbra mod folder to start. Your .pap files should be in at least one folder inside. </p>
                     <button id="btnfolder">Open folder</button>
                     <button id="keywords_info"
                         onclick="const el=document.getElementById('info'); el.style.display = (el.style.display==='block'?'none':'block')">
                         Info
                     </button>
                     <p id="btnfolder_errmsg" style="display: none; color:#fc5c7d"> hello, something went wrong</p>
-                    <p id="info" style="display: none">Keywords used for automatic assignments (name your paps including
-                        those words to automate it): <br></p>
+                    <p id="info" style="display: none">Keywords used for automatic assignments (name your paps including those words to automate it): <br></p>
 
                     <script src="dictionaries/method_dictionary.js"></script>
                     <script>
@@ -42,8 +40,9 @@
                         });
                     </script>
                     <p id="jsonnames"></p>
-                    <pre id="jsoncontent"></pre>
-                    <script src="openfolder.js"></script>
+                    <button id="btnjsn" class="widebutton" onclick="const el=document.getElementById('jsoncontent'); el.style.display = (el.style.display==='block'?'none':'block')" style="display: none;">Show .json content</button>
+                    <pre id="jsoncontent" style="display: none"></pre>
+                    
                 </div>
                 <div class="column-box">
                     <script src="dictionaries/emote_dictionary.js"></script>
@@ -101,9 +100,14 @@
                             </div>
                         </div>
                     </div>
+                    <button class="widebutton" id="saveBtn">Generate .json</button>
+                    <pre id="premeta"></pre>
+                    <pre id="predefault_mod"></pre>
+                    <pre id="saved"></pre>
                 </div>
             </div>
         </section>
+        <script src="openfolder.js"></script>
     </main>
     <footer>
         <p>&copy; 2025 ylliPather by yllisne. All rights reserved.</p>

@@ -11,9 +11,15 @@ what it's supposed to do
 - open already existing .jsons to not mess up what you already pathed (ideally won't touch anything that is not a .pap)
 
 To do (asap):
+- save jsons from scratch
 - save jsons
-- move between groups
 - make it impossible to drop into titles?
+- edit and add option and group names
+- save mod and author names
+- adjust rows to right
+- default files don't land in default
+- files assigned twice are only assigned once (last attempt)
+
 
 
 To do (later):

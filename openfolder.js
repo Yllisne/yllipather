@@ -1,9 +1,13 @@
-let papnames = []; //papnames being used later for the pap table
-
+// FUNCTIONS
+let meta_exists = false;
+let default_mod_exists = false;
+let group_json_existing = 0;
 async function readFolderRecursive(dirHandle, path = '', namesArray = [], contentArray = []) {
     // page visual adjustments
     document.getElementById('intro').style.display = 'none';
-    document.getElementById('btnfolder').textContent = 'Replace folder';
+    //document.getElementById('btnfolder').textContent = 'Replace folder';
+    document.getElementById('btnfolder').style.display = 'none';
+    document.getElementById('btnjsn').style.display = 'block';
     jsonObjects = [];
     //open files in the folder
     for await (const [name, handle] of dirHandle.entries()) {
@@ -12,19 +16,23 @@ async function readFolderRecursive(dirHandle, path = '', namesArray = [], conten
             namesArray.push(`${path}${name}`);
             const file = await handle.getFile();
             const text = await file.text();
-
             if (name.endsWith('.json')) {
+                if (name === 'meta.json') {
+                    meta_exists = true;
+                }
+                else if (name === 'default_mod.json') {
+                    default_mod_exists = true;
+                } else if (/^group_\d+_.+\.json$/i.test(name)) {
+                    group_json_existing++;
+                }
+
                 try {
                     const jsonData = JSON.parse(text);
-                    jsonObjects.push({ filePath, jsonData }); //jsonData is gone after iteration finishes
+                    jsonObjects.push({ filePath, jsonData }); //it will persist until you clear or overwrite the array
                 } catch (error) {
-                    console.error(`Error parsing JSON from ${name}:`, error);
-                    document.getElementById('btnfolder_errmsg').style.display = 'block';
-                    document.getElementById('btnfolder_errmsg').textContent = `Error parsing JSON from ${name}: ${error.message}`;
+                    showError(`Error parsing JSON from ${name}: ${error.message}`)
                 }
             }
-
-
             contentArray.push(`--- ${path}${name} ---\n${text}\n\n`);
         } else if (handle.kind === 'directory') {
             await readFolderRecursive(handle, `${path}${name}/`, namesArray, contentArray);
@@ -35,10 +43,8 @@ async function readFolderRecursive(dirHandle, path = '', namesArray = [], conten
 
 function findAssignedPapNames(jsonObjects) {
     const assignedPapData = [];
-
     for (const { jsonData } of jsonObjects) {
         if (!jsonData.Options || !Array.isArray(jsonData.Options)) continue;
-
         for (const option of jsonData.Options) {
             if (!option.Files) continue;
 
@@ -49,11 +55,10 @@ function findAssignedPapNames(jsonObjects) {
         }
     }
 
-    //console.log('Assigned pap data:', assignedPapData);
     return assignedPapData;
 }
 
-function findAssignedGroup(jsonObjects, papName) {
+function findAssignedGroup(jsonObjects, papName, tableOfContent) {
     const groups = [];
     for (const { jsonData } of jsonObjects) {
         if (!jsonData.Options || !Array.isArray(jsonData.Options)) continue;
@@ -61,7 +66,6 @@ function findAssignedGroup(jsonObjects, papName) {
         const topLevelName = Array.isArray(jsonData)
             ? jsonData[0]?.Name
             : jsonData.Name || "Unnamed Group";
-
         for (const option of jsonData.Options) {
             if (!option.Files) continue;
 
@@ -69,6 +73,13 @@ function findAssignedGroup(jsonObjects, papName) {
                 const values = Array.isArray(assignedValue) ? assignedValue : [assignedValue];
                 if (values.some(val => normalizePath(val).includes(normalizePath(papName)))) {
                     groups.push(topLevelName);
+
+                    const tocItem = tableOfContent.find(item => item.sname === papName);
+                    if (tocItem) {
+                        tocItem.grpid = topLevelName;
+                        tocItem.assignedGamePath = pathKey;
+                    }
+
                 }
             }
         }
@@ -76,6 +87,34 @@ function findAssignedGroup(jsonObjects, papName) {
     return groups;
 }
 
+function findAssignedOption(jsonObjects, papName, tableOfContent) {
+    const options = [];
+
+    for (const { jsonData } of jsonObjects) {
+        if (!jsonData.Options || !Array.isArray(jsonData.Options)) continue;
+
+        for (const option of jsonData.Options) {
+            if (!option.Files) continue;
+
+            for (const [pathKey, assignedValue] of Object.entries(option.Files)) {
+                const values = Array.isArray(assignedValue) ? assignedValue : [assignedValue];
+
+                if (values.some(val => normalizePath(val).includes(normalizePath(papName)))) {
+                    options.push(option.Name);
+
+                    // update your table of contents if relevant
+                    const tocItem = tableOfContent.find(item => item.sname === papName);
+                    if (tocItem) {
+                        tocItem.optit = option.Name;           // save which option
+                        tocItem.assignedOptionPath = pathKey;  // save which path
+                    }
+                }
+            }
+        }
+    }
+
+    return options.length > 0 ? options : null;
+}
 
 
 
@@ -93,23 +132,91 @@ function allowDrop(event) {
     event.preventDefault();
 }
 
+const optionTableMap = {};
+const groupTableMap = {}; // Store tables for each group
 function drop(event) {
     event.preventDefault();
+
     const id = event.dataTransfer.getData("text/plain");
-    const draggedRow = document.querySelector(`[data-id="${id}"]`)
-    if (draggedRow) {
-        event.currentTarget.appendChild(draggedRow);
+    const draggedRow = document.querySelector(`[data-id="${id}"]`);
+    if (!draggedRow) return;
+
+    const targetTbody = event.currentTarget;
+    targetTbody.appendChild(draggedRow);
+
+    // --- UPDATE tableOfContent ---
+    //const papName = draggedRow.querySelector("td").textContent; // assuming first td has the pap name
+    const papName = draggedRow.querySelector("td").textContent.trim();
+
+    const tocItem = tableOfContent.find(item => item.sname === papName);
+    if (!tocItem) return;
+
+    // check if it's dropped into an option table or a group table
+    const optionEntry = Object.entries(optionTableMap).find(([optionName, tbody]) => tbody === targetTbody);
+    const groupEntry = Object.entries(groupTableMap).find(([groupName, tbody]) => tbody === targetTbody);
+
+    if (optionEntry) {
+        tocItem.optit = optionEntry[0];            // update assigned option
+        tocItem.assignedOptionPath = '';           // optionally keep path if needed
+        tocItem.grpid = '';                        // clear group if moved to an option
+    } else if (groupEntry) {
+        tocItem.grpid = groupEntry[0];             // update assigned group
+        tocItem.optit = null;                      // clear option if dropped in group directly
+        tocItem.assignedOptionPath = '';
+        tocItem.optit = optionEntry[0];
+        tocItem.assignedOptionPath = '';
+        tocItem.grpid = '';
+    } else {
+        // if dropped in unassigned table
+        tocItem.grpid = '';
+        tocItem.optit = null;
+        tocItem.assignedOptionPath = '';
     }
 }
 
-let jsonnamesonly = [];
+function createPlaceholderRow() {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    //const columnCount = table.querySelector("thead tr")?.children.length || 1;
+    td.colSpan = 5;
+    td.className = 'tddrop';
+    td.style.textAlign = 'center';
+    td.textContent = "Drop file(s) here"
+    tr.appendChild(td);
+    return tr;
+}
+
+function showError(msg) {
+    const errorel = document.getElementById('btnfolder_errmsg')
+    errorel.style.display = 'block';
+    errorel.textContent = msg;
+    console.error(msg)
+}
+
+function createIconButton(iconSrc, altText, onClick) {
+    const btn = document.createElement('button');
+    btn.className = 'smolbutton';
+    const icon = document.createElement('img');
+    icon.src = iconSrc;
+    icon.alt = altText;
+    icon.style.width = '16px';
+    icon.style.height = '16px';
+    btn.appendChild(icon);
+    if (onClick) btn.addEventListener('click', onClick);
+    return btn;
+}
+
+// 'GLOBAL' VARIABLES
+let jsonnames = []; // both .json and .pap names, not array
+let papnames = []; //only names of .paps, array
+let jsonnamesonly = []; // only names of .json, array
+let jsoncontent = []; // jsons content as text
+let tableOfContent = [];
+
 document.getElementById('btnfolder').addEventListener('click', async function () {
     try {
         const folderPath = await window.showDirectoryPicker();
         document.getElementById('btnfolder_errmsg').style.display = 'none';
-
-        let jsoncontent = [];
-        let jsonnames = [];
 
         // json names with funcion and jsoncontent with for (wasn't working with function)
         await readFolderRecursive(folderPath, '', jsonnames);
@@ -120,30 +227,25 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 jsoncontent.push(`--- ${name} ---\n${text}\n\n`);
             }
         }
-        // Filter out .json files and keep only .pap files
+        // make seperate arrays for json and pap names
+        jsonnamesonly = jsonnames.filter(name => name.endsWith('.json'));
         papnames = jsonnames.filter(name => name.endsWith('.pap'));
 
-        jsonnamesonly = jsonnames.filter(name => name.endsWith('.json'));
-        papnames = papnames.map(name => {
+        // strip paps from folders
+        papnames = papnames.map((name, index) => {
             const parts = name.split('/');
-            return parts[parts.length - 1];
+            const shortname = parts[parts.length - 1];
+
+            tableOfContent.push({
+                id: index + 1,
+                fullname: name,
+                sname: shortname,
+                assignedGamePath: '',
+                grpid: '',
+            })
+            return shortname;
 
         });
-        // trying to find assigned paths in jsoncontent
-        let assignedPathNames = []
-        jsonObjects.forEach(({ jsonData }) => {
-            for (const key of Object.keys(jsonData)) {
-                if (key.endsWith('.pap')) {
-                    assignedPathNames.push(key);
-                }
-            }
-        });
-
-
-
-        //test logs
-        //console.log('Assigned paths:', assignedPathNames);
-        //console.log(papnames);
 
         //actually showing the json content on the page
         document.getElementById('jsonnames').textContent = jsonnames.join('\n');
@@ -167,10 +269,8 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                     document.getElementById('unk_modinfo').style.display = "block";
                 }
 
-                // Set the link URL
+                // Set the link URL and visible text
                 modlink.href = website;
-
-                // Set the visible text
                 modinfo.textContent = `${author} – ${modName}`;
 
             }
@@ -179,27 +279,21 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
 
     }
     catch (error) {
-        console.error('Error opening folder:', error);
-        document.getElementById('btnfolder_errmsg').style.display = 'block';
-        document.getElementById('btnfolder_errmsg').textContent = 'Error: ' + error.message;
+        showError(error);
     }
 
 
     //list of groups
     document.getElementById('groups').style.display = 'block';
-    //console.log('jsonObjects:', jsonObjects);
-    //console.log('jsonData:', jsonObjects.map(obj => obj.jsonData));
-
     document.getElementById('groups').style.display = 'block';
     let id = 0;
     const groupMap = {};
-    const groupTableMap = {}; // Store tables for each group
+
 
 
 
     jsonnamesonly.forEach((filename, index) => {
         if (['default_mod.json', 'meta.json'].includes(filename)) {
-            //console.log(`Skipping ${filename}`);
             return; // skip this iteration
         }
 
@@ -209,7 +303,6 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
         const groupName = Array.isArray(jsonObj.jsonData)
             ? jsonObj.jsonData.find(item => item?.Name)?.Name || `Group ${id}`
             : jsonObj.jsonData.Name || `Group ${id}`;
-
 
         // Create the main drag-box div
         const dragBox = document.createElement('div');
@@ -223,11 +316,6 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
         const groupData = Array.isArray(jsonObj.jsonData)
             ? jsonObj.jsonData.find(item => item?.Name)
             : jsonObj.jsonData;
-
-
-        // spanName = document.createElement('span');
-        //spanName.id = `grp${id}`;
-        //spanName.textContent = groupData?.Name || `Group ${id}`;;
 
         inputtextName = document.createElement('input');
         inputtextName.type = 'text';
@@ -254,16 +342,42 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
             ? jsonObj.jsonData.find(item => item?.Type)
             : jsonObj.jsonData;
 
-        select.value = selectData?.Type || 'single group'; // Set the value based on jsonData
+        select.value = selectData?.Type || 'Single'; // Set the value based on jsonData
         spanSelect.appendChild(select);
 
-        // Append spans to header
-        //header.appendChild(spanName);
+        // Append fields to header
         header.appendChild(inputtextName);
         header.appendChild(spanSelect);
 
         // Create drag-box-space div
         const dragSpace = document.createElement('div');
+
+
+        jsonObj.jsonData.Options.forEach(option => {
+            const optionBox = document.createElement('div');
+            optionBox.className = 'option-box';
+
+            const optionHeader = document.createElement('div');
+            optionHeader.className = 'option-header';
+            optionHeader.textContent = option.Name;
+
+            const optionTable = document.createElement('table');
+            const optionTbody = document.createElement('tbody');
+            optionTable.appendChild(optionTbody);
+            optionTbody.addEventListener('dragover', allowDrop);
+            optionTbody.addEventListener('drop', drop);
+
+            optionTbody.appendChild(createPlaceholderRow());
+
+
+            optionBox.appendChild(optionHeader);
+            optionBox.appendChild(optionTable);
+            dragSpace.appendChild(optionBox);
+
+            optionTableMap[option.Name] = optionTbody;
+
+        })
+
 
         const table = document.createElement('table');
         table.id = `table${groupName.replace(/\s+/g, '_')}`;
@@ -277,19 +391,10 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
         tbody.addEventListener("drop", drop);
 
 
-        table.style.borderCollapse = 'collapse';
         table.style.minHeight = '40px'; // make empty tables visible
 
         //placeholders for empty group
-        const placeholder = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 5; // number of columns
-        td.class = "tddrop";
-        //td.style.textAlign = 'center';
-        //td.style.color = '#7fb3df';
-        td.textContent = 'Drop file(s) here';
-        placeholder.appendChild(td);
-        tbody.appendChild(placeholder);
+        tbody.appendChild(createPlaceholderRow());
 
 
 
@@ -310,9 +415,6 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
         console.warn('No groups found in jsonnamesonly');
     }
 
-
-
-
     let trid = 0;
     //building the pap table visible on website
     if (document.getElementById('unassignedTable').style.display === 'none') {
@@ -321,30 +423,20 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
     if (papnames.length > 0) {
 
         const tbody = document.querySelector('#unassignedTable tbody');
-        tbody.innerHTML = '';
-        const tru = document.createElement('tr');
-        const tdu = document.createElement('td');
-        tdu.colSpan = 5;
-        tdu.className = 'tddrop';
-        tdu.style.textAlign = 'center';
-        tdu.textContent = 'Drop file(s) here';
-
-        tru.appendChild(tdu);
-        tbody.appendChild(tru);
-        //.innerHTML = ''; // Clear existing rows
-
-
-        let targetTbody;
-
+        if (!tbody.querySelector('.tddrop') && tbody === document.querySelector('#unassignedTable tbody')) {
+            tbody.appendChild(createPlaceholderRow());
+        }
 
         papnames.forEach(pap => {
-            //const assignedGroups = findAssignedGroup(jsonObjects, pap);
-            const assignedGroups = [...new Set(findAssignedGroup(jsonObjects, pap))]; // remove duplicates
-
-            //const tr = document.createElement('tr');
+            const assignedGroups = [...new Set(findAssignedGroup(jsonObjects, pap, tableOfContent))]; // remove duplicates
+            const assignedOptionGroups = [...new Set(findAssignedOption(jsonObjects, pap, tableOfContent))]
             const buildRow = (pap) => {
                 const tr = document.createElement('tr');
-                tr.id = trid++;
+                tr.draggable = "true";
+                tr.id = trid;
+                trid++;
+                tr.addEventListener("dragstart", drag);
+
                 // Name
                 const tdName = document.createElement('td');
                 tdName.textContent = pap;
@@ -408,6 +500,7 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
                 const delBtn = document.createElement('button');
 
                 // edit button
+
                 const editButton = document.createElement('button');
                 editButton.className = 'smolbutton';
                 const editIcon = document.createElement('img');
@@ -460,49 +553,160 @@ document.getElementById('btnfolder').addEventListener('click', async function ()
 
                 return tr;
             };
+            //console.log(tableOfContent)
+
+            const assignedOptions = assignedOptionGroups;
 
             if (assignedGroups.length > 0) {
                 assignedGroups.forEach(group => {
                     const groupTbody = groupTableMap[group];
-                    if (groupTbody) {
-                        const placeholder = tbody.querySelector('tr td[colspan="5"]');
-                        if (placeholder) placeholder.parentElement.remove();
-                        groupTbody.appendChild(buildRow(pap));
-                    } else {
+                    if (!groupTbody) {
                         console.warn(`No table found for group: ${group}`);
+                        return;
                     }
+
+                    assignedOptions.forEach(optionName => {
+                        const foundOptionTbody = optionTableMap[optionName]
+                        if (foundOptionTbody) {
+                            foundOptionTbody.appendChild(buildRow(pap));
+                        } else {
+                            //no option, create own
+                            let newOptionTbody = optionTableMap[optionName];
+                            if (!newOption) {
+                                const table = groupTbody.closest("table");
+                                newOptionTbody = table.insertRow().insertCell().appendChild(document.createElement("tbody"));
+                                optionTableMap[optionName] = newOptionTbody;
+
+                            }
+                            newOptionTbody.appendChild(buildRow(pap));
+                            //groupTbody.appendChild(buildRow(pap));
+                        }
+                    })
                 });
             } else {
                 document.querySelector('#unassignedTable tbody').appendChild(buildRow(pap));
-                const placeholder = unassignedTbody.querySelector('tr td[colspan="5"]');
-                if (placeholder) placeholder.parentElement.remove();
-
-                const tbody = document.querySelector('#unassignedTable tbody');
-                tbody.innerHTML = '';
-                const tru = document.createElement('tr');
-                const tdu = document.createElement('td');
-                tdu.colSpan = 5;
-                tdu.className = 'tddrop';
-                tdu.style.textAlign = 'center';
-                tdu.textContent = 'Drop file(s) here';
-
-                tru.appendChild(tdu);
-                tbody.appendChild(tru);
-
-                //unassignedTbody.appendChild(buildRow(pap));
             }
-
         });
 
 
     } else {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 5; // Adjust based on the number of columns
-        td.textContent = 'No .pap files found';
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+
+        //tbody.appendChild(createPlaceholderRow());
     }
 
 }
 );
+// Save everything to <pre>
+function updateFilesWithMethod(tableOfContent, method_exec) {
+    return tableOfContent.map(item => {
+        if (!item.selectedEmote || !item.selectedMethod) return item;
+
+        const raceCodes = method_exec[item.selectedMethod];
+        if (!raceCodes || raceCodes.length === 0) return item;
+
+        const pathParts = item.selectedEmote.split('/');
+        const codeIndex = pathParts.findIndex(p => /^c\d{4}$/.test(p));
+        if (codeIndex === -1) return item;
+
+        const suffixPath = pathParts.slice(codeIndex + 1).join('/');
+
+        const newFiles = {};
+        raceCodes.forEach(code => {
+            const newPath = pathParts.slice(0, codeIndex).concat(code, suffixPath).join('/');
+            newFiles[newPath] = item.fullname;
+        });
+
+        return { ...item, Files: newFiles };
+    });
+}
+
+
+function saveUpdatedJson(originalJson) {
+    const updatedJson = { ...originalJson };
+    if (!Array.isArray(updatedJson.Options)) updatedJson.Options = [];
+
+    updatedJson.Options.forEach(option => {
+        option.Files = {}; //to add: only clear pap files, leave any other assignment
+    });
+
+    tableOfContent = updateFilesWithMethod(tableOfContent, method_exec);
+
+    tableOfContent.forEach(item => {
+        if (!item.opit || !item.assignedGamePath) return; //to fix, unassigned might need to go to default_mod.json
+
+        const option = updatedJson.Options.find(opt => opt.Name === item.optit);
+        if (option) {
+            option.Files[item.assignedGamePath] = item.fullname;
+        }
+
+    })
+    return updatedJson;
+}
+
+function gatherTOCupadates() {
+    tableOfContent.forEach(item => {
+        // find row by matching first cell text
+        const rows = document.querySelectorAll('tr');
+        let row = null;
+        for (const r of rows) {
+            const firstTd = r.querySelector('td:first-child');
+            if (firstTd && firstTd.textContent === item.sname) {
+                row = r;
+                break;
+            }
+        }
+        if (!row) return;
+
+        const methodSelect = row.querySelector('td:nth-child(3) select');
+        const emoteSelect = row.querySelector('td:nth-child(4) select');
+        const optionCheckbox = row.querySelector('td:nth-child(2) input[type="checkbox"]');
+
+        if (methodSelect) item.selectedMethod = methodSelect.value;
+        if (emoteSelect) item.selectedEmote = emoteSelect.value;
+        if (optionCheckbox) item.checked = optionCheckbox.checked;
+    })
+}
+
+
+document.getElementById("saveBtn").addEventListener("click", () => {
+    gatherTOCupadates();
+
+    const container = document.getElementById("saved");
+    container.innerHTML = '';
+
+    jsonObjects.forEach(jsonObj => {
+        const updatedJson = saveUpdatedJson(jsonObj.jsonData);
+
+        tableOfContent.forEach(item => {
+            if (!item.selectedEmote || !item.selectedMethod) return;
+
+            const races = method_exec[item.selectedMethod] || [];
+            const option = updatedJson.Options.find(opt => opt.Name === item.optit);
+            if (!option) return;
+
+            //fix - selected emote should be first
+            races.forEach(race => {
+                if (item.assignedOptionPath === '') {
+                    //check chosen option, compare with dictionary
+                    const path = item.selectedEmote.replace(/c\d{4}/, race);
+                    option.Files[path] = item.fullname.replace(/\//g, '\\');
+                }
+                else {
+                    const path = item.assignedOptionPath.replace(/c\d{4}/, race);
+                    option.Files[path] = item.fullname.replace(/\//g, '\\');
+                }
+                //option.Files[path] = item.selectedEmote.replace(/c\d{4}/, race);
+
+            });
+        });
+
+        // Put it in the <pre> tag
+        const pre = document.createElement("pre");
+        pre.className = 'easycopy';
+        pre.textContent = JSON.stringify(updatedJson, null, 2);
+        container.appendChild(pre);
+
+        console.log(tableOfContent)
+    })
+
+});

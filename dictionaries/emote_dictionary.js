@@ -1,5 +1,10 @@
 // Library of emote .pap file names to friendly names
 // Add more mappings as needed
+const emote_terms = {
+    "idle": ["idle", "pose"],
+    "loop": ["lp", "loop", "2lp"]
+}
+
 const emote_map = {
   '': ['not found, keep assignments'],
   'chara/human/c0101/animation/a0001/bt_common/emote/j_pose01_loop.pap': ['gsit1 loop'],

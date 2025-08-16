@@ -1,0 +1,17 @@
+{
+  "Version": 0,
+  "Name": "",
+  "Description": "",
+  "Priority": 0,
+  "Type": "Single",
+  "DefaultSettings": 0,
+  "Options": [
+    {
+      "Name": "option 1",
+      "Description": "",
+      "Files": {},
+      "FileSwaps": {},
+      "Manipulations": []
+    }
+  ]
+}
