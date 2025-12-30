@@ -38,6 +38,12 @@ const emote_map = {
   "chara/human/c0101/animation/a0001/bt_common/emote/loop_emot20_start.pap": ['confirm start'],
   "chara/human/c0101/animation/a0001/bt_common/emote/loop_emot23_loop.pap": ['lean loop'],
   "chara/human/c0101/animation/a0001/bt_common/emote/loop_emot23_start.pap": ['lean start'],
+  "chara/human/c0101/animation/a0001/bt_common/emote_sp/sp72_loop.pap": ['sp72 loop'],
+  "chara/human/c0101/animation/a0001/bt_common/emote_sp/sp72_start.pap": ['sp72 start'],  
+  "chara/human/c0101/animation/a0001/bt_common/emote_sp/sp72_uldaha_loop.pap": ['sp72 uldaha loop'],
+  "chara/human/c0101/animation/a0001/bt_common/emote_sp/sp72_uldaha_start.pap": ['sp72 uldaha start'],
+  "chara/human/c0101/animation/a0001/bt_common/emote_sp/sp72_limsa_loop.pap": ['sp72 limsa loop'],
+  "chara/human/c0101/animation/a0001/bt_common/emote_sp/sp72_limsa_start.pap": ['sp72 limsa start'],
 };
 
 // Export for module usage (uncomment if using modules)
